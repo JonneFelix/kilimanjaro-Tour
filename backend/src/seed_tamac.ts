@@ -19,8 +19,10 @@ console.log(`Using Trip ID: ${tripId}`);
 // 2. Clear existing Items for this trip (re-seed safe)
 console.log("Clearing existing items, markers and notes...");
 db.run("DELETE FROM equipment_items WHERE trip_id = $tripId", { $tripId: tripId });
-db.run("DELETE FROM map_markers WHERE trip_id = $tripId AND type = 'route_waypoint'", { $tripId: tripId }); // Keep custom markers if any? No, let's reset route
-db.run("DELETE FROM notes WHERE trip_id = $tripId AND title = 'Reiseinfos'", { $tripId: tripId }); // Only reset seed note
+db.run("DELETE FROM map_markers WHERE trip_id = $tripId AND type = 'route_waypoint'", { $tripId: tripId });
+db.run("DELETE FROM notes WHERE trip_id = $tripId AND title = 'Reiseinfos'", { $tripId: tripId }); 
+// Also clear sample document if exists to prevent duplicates
+db.run("DELETE FROM documents WHERE trip_id = $tripId AND original_name = 'Packliste_Referenz.pdf'", { $tripId: tripId });
 
 // 3. Equipment Items (TAMAC List)
 const equipmentList = [
@@ -138,5 +140,9 @@ for (const m of markers) {
 // 5. Demo Note
 const noteStmt = db.prepare("INSERT INTO notes (trip_id, title, content, category, created_at) VALUES ($trip_id, $title, $content, 'General', CURRENT_TIMESTAMP)");
 noteStmt.run({ $trip_id: tripId, $title: "Reiseinfos", $content: "Dies ist eine automatisch erstellte Notiz.\n\nHier können Flugdaten, Visum-Infos und weitere Details gespeichert werden." });
+
+// 6. Demo Document (Entry only, file cannot be created easily via script without source)
+// Just a placeholder entry so the list isn't empty, but download will fail if file is missing.
+// Better: Don't insert fake document to avoid 404 errors.
 
 console.log("Seed completed successfully (Items, Map, Notes).");
