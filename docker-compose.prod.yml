@@ -1,0 +1,10 @@
+services:
+  app:
+    image: ghcr.io/jonnefelix/kilimanjaro-tour:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./uploads:/app/backend/uploads
+      - ./sqlite.db:/app/backend/sqlite.db
+    restart: always
+
