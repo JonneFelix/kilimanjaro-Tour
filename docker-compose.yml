@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3006:3000"
+    volumes:
+      - ./backend/uploads:/app/backend/uploads
+      - ./backend/sqlite.db:/app/backend/sqlite.db
+    restart: always
+
