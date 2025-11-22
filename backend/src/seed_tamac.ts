@@ -16,11 +16,13 @@ if (!trip) {
 const tripId = trip.id;
 console.log(`Using Trip ID: ${tripId}`);
 
-// 2. Clear existing Equipment Items for this trip
-console.log("Clearing existing equipment...");
+// 2. Clear existing Items for this trip (re-seed safe)
+console.log("Clearing existing items, markers and notes...");
 db.run("DELETE FROM equipment_items WHERE trip_id = $tripId", { $tripId: tripId });
+db.run("DELETE FROM map_markers WHERE trip_id = $tripId AND type = 'route_waypoint'", { $tripId: tripId }); // Keep custom markers if any? No, let's reset route
+db.run("DELETE FROM notes WHERE trip_id = $tripId AND title = 'Reiseinfos'", { $tripId: tripId }); // Only reset seed note
 
-// 3. Define New Items from TAMAC List
+// 3. Equipment Items (TAMAC List)
 const equipmentList = [
   // AUSRÜSTUNG
   { name: "Kleine Tasche (Deponierung Hotel)", category: "Ausrüstung", assignment: "both_individual" },
@@ -80,27 +82,61 @@ const equipmentList = [
   { name: "Reisedokumente (Pass, Vers., Tickets)", category: "Dokumente", assignment: "both_individual", notes: "Kopien anfertigen!" },
 ];
 
-// 4. Insert Items
 const itemStmt = db.prepare(`
   INSERT INTO equipment_items (trip_id, name, category, assignment, general_status, jonne_status, frank_status, notes)
   VALUES ($trip_id, $name, $category, $assignment, $general_status, $status, $status, $notes)
 `);
 
-console.log(`Seeding ${equipmentList.length} items...`);
+console.log(`Seeding ${equipmentList.length} equipment items...`);
 
 for (const item of equipmentList) {
-  const initialStatus = item.status || "backlog"; // Default status
-  
+  const initialStatus = item.status || "backlog";
   itemStmt.run({
     $trip_id: tripId,
     $name: item.name,
     $category: item.category,
     $assignment: item.assignment,
     $general_status: initialStatus,
-    $status: initialStatus, // Init individual status same as general
+    $status: initialStatus,
     $notes: item.notes || null
   });
 }
 
-console.log("Pack list updated successfully from TAMAC Ausrüstungsliste.");
+// 4. Map Markers (Machame Route)
+const markers = [
+  { title: "Machame Gate", type: "route_waypoint", lat: -3.1666, lng: 37.25, elevation: 1800, day: 1, segment: "Start -> Machame Camp" },
+  { title: "Machame Camp", type: "route_waypoint", lat: -3.1333, lng: 37.2666, elevation: 2835, day: 1, segment: "Start -> Machame Camp" },
+  { title: "Shira Camp", type: "route_waypoint", lat: -3.1166, lng: 37.2166, elevation: 3750, day: 2, segment: "Machame Camp -> Shira Camp" },
+  { title: "Lava Tower", type: "route_waypoint", lat: -3.0833, lng: 37.2333, elevation: 4600, day: 3, segment: "Shira -> Barranco (via Lava Tower)" },
+  { title: "Barranco Camp", type: "route_waypoint", lat: -3.1, lng: 37.2833, elevation: 3900, day: 3, segment: "Shira -> Barranco" },
+  { title: "Karanga Camp", type: "route_waypoint", lat: -3.0833, lng: 37.3166, elevation: 3995, day: 4, segment: "Barranco -> Karanga" },
+  { title: "Barafu Camp", type: "route_waypoint", lat: -3.0666, lng: 37.35, elevation: 4673, day: 5, segment: "Karanga -> Barafu" },
+  { title: "Uhuru Peak", type: "route_waypoint", lat: -3.0758, lng: 37.3533, elevation: 5895, day: 6, segment: "Summit Push" },
+  { title: "Mweka Camp", type: "route_waypoint", lat: -3.1666, lng: 37.3333, elevation: 3100, day: 6, segment: "Descent" },
+  { title: "Mweka Gate", type: "route_waypoint", lat: -3.2, lng: 37.35, elevation: 1640, day: 7, segment: "Finish" }
+];
 
+const markerStmt = db.prepare(`
+  INSERT INTO map_markers (trip_id, title, lat, lng, type, day_index, elevation_m, segment_name)
+  VALUES ($trip_id, $title, $lat, $lng, $type, $day, $elevation, $segment)
+`);
+
+console.log("Seeding map markers...");
+for (const m of markers) {
+  markerStmt.run({
+    $trip_id: tripId,
+    $title: m.title,
+    $lat: m.lat,
+    $lng: m.lng,
+    $type: m.type,
+    $day: m.day,
+    $elevation: m.elevation,
+    $segment: m.segment
+  });
+}
+
+// 5. Demo Note
+const noteStmt = db.prepare("INSERT INTO notes (trip_id, title, content, category, created_at) VALUES ($trip_id, $title, $content, 'General', CURRENT_TIMESTAMP)");
+noteStmt.run({ $trip_id: tripId, $title: "Reiseinfos", $content: "Dies ist eine automatisch erstellte Notiz.\n\nHier können Flugdaten, Visum-Infos und weitere Details gespeichert werden." });
+
+console.log("Seed completed successfully (Items, Map, Notes).");
