@@ -20,8 +20,7 @@ console.log(`Using Trip ID: ${tripId}`);
 console.log("Clearing existing items, markers and notes...");
 db.run("DELETE FROM equipment_items WHERE trip_id = $tripId", { $tripId: tripId });
 db.run("DELETE FROM map_markers WHERE trip_id = $tripId AND type = 'route_waypoint'", { $tripId: tripId });
-db.run("DELETE FROM notes WHERE trip_id = $tripId AND title = 'Reiseinfos'", { $tripId: tripId }); 
-// Also clear sample document if exists to prevent duplicates
+db.run("DELETE FROM notes WHERE trip_id = $tripId AND title = 'Reiseinfos'", { $tripId: tripId });
 db.run("DELETE FROM documents WHERE trip_id = $tripId AND original_name = 'Packliste_Referenz.pdf'", { $tripId: tripId });
 
 // 3. Equipment Items (TAMAC List)
@@ -106,16 +105,16 @@ for (const item of equipmentList) {
 
 // 4. Map Markers (Machame Route)
 const markers = [
-  { title: "Machame Gate", type: "route_waypoint", lat: -3.1666, lng: 37.25, elevation: 1800, day: 1, segment: "Start -> Machame Camp" },
-  { title: "Machame Camp", type: "route_waypoint", lat: -3.1333, lng: 37.2666, elevation: 2835, day: 1, segment: "Start -> Machame Camp" },
-  { title: "Shira Camp", type: "route_waypoint", lat: -3.1166, lng: 37.2166, elevation: 3750, day: 2, segment: "Machame Camp -> Shira Camp" },
-  { title: "Lava Tower", type: "route_waypoint", lat: -3.0833, lng: 37.2333, elevation: 4600, day: 3, segment: "Shira -> Barranco (via Lava Tower)" },
-  { title: "Barranco Camp", type: "route_waypoint", lat: -3.1, lng: 37.2833, elevation: 3900, day: 3, segment: "Shira -> Barranco" },
-  { title: "Karanga Camp", type: "route_waypoint", lat: -3.0833, lng: 37.3166, elevation: 3995, day: 4, segment: "Barranco -> Karanga" },
-  { title: "Barafu Camp", type: "route_waypoint", lat: -3.0666, lng: 37.35, elevation: 4673, day: 5, segment: "Karanga -> Barafu" },
-  { title: "Uhuru Peak", type: "route_waypoint", lat: -3.0758, lng: 37.3533, elevation: 5895, day: 6, segment: "Summit Push" },
-  { title: "Mweka Camp", type: "route_waypoint", lat: -3.1666, lng: 37.3333, elevation: 3100, day: 6, segment: "Descent" },
-  { title: "Mweka Gate", type: "route_waypoint", lat: -3.2, lng: 37.35, elevation: 1640, day: 7, segment: "Finish" }
+  { title: "Machame Gate", type: "route_waypoint", lat: -3.1666, lng: 37.25, elevation: 1800, day_index: 1, segment_name: "Start -> Machame Camp" },
+  { title: "Machame Camp", type: "route_waypoint", lat: -3.1333, lng: 37.2666, elevation: 2835, day_index: 1, segment_name: "Start -> Machame Camp" },
+  { title: "Shira Camp", type: "route_waypoint", lat: -3.1166, lng: 37.2166, elevation: 3750, day_index: 2, segment_name: "Machame Camp -> Shira Camp" },
+  { title: "Lava Tower", type: "route_waypoint", lat: -3.0833, lng: 37.2333, elevation: 4600, day_index: 3, segment_name: "Shira -> Barranco (via Lava Tower)" },
+  { title: "Barranco Camp", type: "route_waypoint", lat: -3.1, lng: 37.2833, elevation: 3900, day_index: 3, segment_name: "Shira -> Barranco" },
+  { title: "Karanga Camp", type: "route_waypoint", lat: -3.0833, lng: 37.3166, elevation: 3995, day_index: 4, segment_name: "Barranco -> Karanga" },
+  { title: "Barafu Camp", type: "route_waypoint", lat: -3.0666, lng: 37.35, elevation: 4673, day_index: 5, segment_name: "Karanga -> Barafu" },
+  { title: "Uhuru Peak", type: "route_waypoint", lat: -3.0758, lng: 37.3533, elevation: 5895, day_index: 6, segment_name: "Summit Push" },
+  { title: "Mweka Camp", type: "route_waypoint", lat: -3.1666, lng: 37.3333, elevation: 3100, day_index: 6, segment_name: "Descent" },
+  { title: "Mweka Gate", type: "route_waypoint", lat: -3.2, lng: 37.35, elevation: 1640, day_index: 7, segment_name: "Finish" }
 ];
 
 const markerStmt = db.prepare(`
@@ -131,9 +130,9 @@ for (const m of markers) {
     $lat: m.lat,
     $lng: m.lng,
     $type: m.type,
-    $day: m.day,
+    $day: m.day_index,
     $elevation: m.elevation,
-    $segment: m.segment
+    $segment: m.segment_name
   });
 }
 
@@ -141,8 +140,8 @@ for (const m of markers) {
 const noteStmt = db.prepare("INSERT INTO notes (trip_id, title, content, category, created_at) VALUES ($trip_id, $title, $content, 'General', CURRENT_TIMESTAMP)");
 noteStmt.run({ $trip_id: tripId, $title: "Reiseinfos", $content: "Dies ist eine automatisch erstellte Notiz.\n\nHier können Flugdaten, Visum-Infos und weitere Details gespeichert werden." });
 
-// 6. Demo Document (Entry only, file cannot be created easily via script without source)
-// Just a placeholder entry so the list isn't empty, but download will fail if file is missing.
-// Better: Don't insert fake document to avoid 404 errors.
+// 6. Demo Document (Optional)
+// Creating a dummy document entry to show functionality. The file won't physically exist on disk, so download would fail.
+// Better not to confuse users. Skipped.
 
 console.log("Seed completed successfully (Items, Map, Notes).");
