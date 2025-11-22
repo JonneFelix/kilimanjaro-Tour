@@ -2,9 +2,12 @@ services:
   app:
     image: ghcr.io/jonnefelix/kilimanjaro-tour:latest
     ports:
-      - "3000:3000"
+      - "3010:3000"
     volumes:
-      - ./uploads:/app/backend/uploads
-      - ./sqlite.db:/app/backend/sqlite.db
+      - kili_uploads:/app/backend/uploads
+      - kili_db:/app/backend
     restart: always
 
+volumes:
+  kili_uploads:
+  kili_db:
